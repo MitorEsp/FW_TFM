@@ -42,6 +42,7 @@
 
 /* USER CODE BEGIN 0 */
 #include "udp.h"
+
 /* USER CODE END 0 */
 
 /* Global Variables ----------------------------------------------------------*/
@@ -57,13 +58,11 @@ void MX_LWIP_Init(void);
  *   - Send it to the lwIP stack for handling
  *   - Handle timeouts if NO_SYS_NO_TIMERS not set
  */
+void udp_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port);
+void udpServer_init(void *rec_arg);
 void MX_LWIP_Process(void);
 
 /* USER CODE END 1 */
-void udp_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port);
-void udpServer_init(void);
-
-
 #endif /* WITH_RTOS */
 
 #ifdef __cplusplus

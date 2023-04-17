@@ -111,6 +111,11 @@ void Error_Handler(void);
 #define LD2_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
+typedef struct{
+	ADC_HandleTypeDef *ptrHadc1;
+	DAC_HandleTypeDef *ptrHdac;
+}ptrHWparams;
+
 
 /* USER CODE END Private defines */
 

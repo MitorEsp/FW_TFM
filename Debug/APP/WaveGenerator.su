@@ -1,0 +1,2 @@
+../APP/WaveGenerator.c:9:27:WG_Initialize	56	static
+../APP/WaveGenerator.c:30:6:WG_Process_Data	24	static

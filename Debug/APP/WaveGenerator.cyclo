@@ -1,0 +1,2 @@
+WaveGenerator.c:9:27:WG_Initialize	1
+WaveGenerator.c:30:6:WG_Process_Data	2

@@ -21,6 +21,10 @@ LWIP/App/lwip.o: ../LWIP/App/lwip.c ../LWIP/App/lwip.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_dma.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_dma_ex.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_cortex.h \
+ ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_adc.h \
+ ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_adc_ex.h \
+ ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_dac.h \
+ ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_dac_ex.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_eth.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_flash.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_flash_ex.h \
@@ -60,7 +64,8 @@ LWIP/App/lwip.o: ../LWIP/App/lwip.c ../LWIP/App/lwip.h \
  ../Middlewares/Third_Party/LwIP/src/include/lwip/ip6.h \
  ../Middlewares/Third_Party/LwIP/src/include/lwip/prot/ip.h \
  ../Middlewares/Third_Party/LwIP/src/include/lwip/prot/udp.h \
- ../Middlewares/Third_Party/LwIP/src/include/lwip/init.h
+ ../Middlewares/Third_Party/LwIP/src/include/lwip/init.h \
+ /Users/victorespesoaparicio/Desktop/TFM/FW/FW_TFM/APP/WaveGenerator.h
 ../LWIP/App/lwip.h:
 ../Middlewares/Third_Party/LwIP/src/include/lwip/opt.h:
 ../LWIP/Target/lwipopts.h:
@@ -85,6 +90,10 @@ LWIP/App/lwip.o: ../LWIP/App/lwip.c ../LWIP/App/lwip.h \
 ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_dma.h:
 ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_dma_ex.h:
 ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_cortex.h:
+../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_adc.h:
+../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_adc_ex.h:
+../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_dac.h:
+../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_dac_ex.h:
 ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_eth.h:
 ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_flash.h:
 ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_flash_ex.h:
@@ -125,3 +134,4 @@ LWIP/App/lwip.o: ../LWIP/App/lwip.c ../LWIP/App/lwip.h \
 ../Middlewares/Third_Party/LwIP/src/include/lwip/prot/ip.h:
 ../Middlewares/Third_Party/LwIP/src/include/lwip/prot/udp.h:
 ../Middlewares/Third_Party/LwIP/src/include/lwip/init.h:
+/Users/victorespesoaparicio/Desktop/TFM/FW/FW_TFM/APP/WaveGenerator.h:
