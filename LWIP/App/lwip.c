@@ -59,7 +59,7 @@ void udp_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p,
 	//char *remoteIP = ipaddr_ntoa(addr);
 
 	char bufOut[100];
-	uint16_t lenOut;
+	uint16_t lenOut = 100;
 
 	WG.ProcessData(p->payload, p->len, bufOut, &lenOut, arg);
 

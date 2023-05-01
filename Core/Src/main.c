@@ -22,7 +22,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <math.h>
+#include "WaveGenerator.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -37,14 +38,22 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+#define DAC_FS			(float)3.3
+#define DAC_BITS		12
+#define DAC_RESOLUTION	(DAC_FS/(pow(2,DAC_BITS)-1))
+#define DAC_CTE_CONV	(float)1240.909091
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+
 DAC_HandleTypeDef hdac;
 
+TIM_HandleTypeDef htim2;
+
 /* USER CODE BEGIN PV */
+
+
 
 /* USER CODE END PV */
 
@@ -53,6 +62,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_DAC_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -92,6 +102,7 @@ int main(void) {
 	MX_LWIP_Init();
 	MX_ADC1_Init();
 	MX_DAC_Init();
+	MX_TIM2_Init();
 	/* USER CODE BEGIN 2 */
 
 	ptrHWparams ptrHWp;
@@ -99,7 +110,9 @@ int main(void) {
 	ptrHWp.ptrHadc1 = &hadc1;
 	ptrHWp.ptrHdac = &hdac;
 
-	udpServer_init((void*)&ptrHWp);
+	udpServer_init((void*) &ptrHWp);
+
+	//https://www.youtube.com/watch?v=YPJlhYm5T8Y
 
 	//There are need to configurate the ioc to this
 //	//D(igital) A(nalogic) C(onversion)	//PA04
@@ -259,6 +272,48 @@ static void MX_DAC_Init(void) {
 }
 
 /**
+ * @brief TIM2 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_TIM2_Init(void) {
+
+	/* USER CODE BEGIN TIM2_Init 0 */
+
+	/* USER CODE END TIM2_Init 0 */
+
+	TIM_ClockConfigTypeDef sClockSourceConfig = { 0 };
+	TIM_MasterConfigTypeDef sMasterConfig = { 0 };
+
+	/* USER CODE BEGIN TIM2_Init 1 */
+
+	/* USER CODE END TIM2_Init 1 */
+	htim2.Instance = TIM2;
+	htim2.Init.Prescaler = 32000;
+	htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+	htim2.Init.Period = 1000;
+	htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+	if (HAL_TIM_Base_Init(&htim2) != HAL_OK) {
+		Error_Handler();
+	}
+	sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+	if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK) {
+		Error_Handler();
+	}
+	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+	if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN TIM2_Init 2 */
+
+	/* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
  * @brief GPIO Initialization Function
  * @param None
  * @retval None
@@ -337,6 +392,12 @@ static void MX_GPIO_Init(void) {
 
 /* USER CODE BEGIN 4 */
 
+void setTestStart(bool start){
+	start ? HAL_TIM_Base_Start_IT(&htim2) : HAL_TIM_Base_Stop_IT(&htim2);
+	//lo mismo para el clock de alta frecuencia
+}
+
+
 /* USER CODE END 4 */
 
 /**
@@ -355,7 +416,32 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		HAL_IncTick();
 	}
 	/* USER CODE BEGIN Callback 1 */
+	else if (htim->Instance == TIM2) {
 
+		/* Update all parameters in this second */
+		WG.UpdateTestStep();
+
+		/********************* Tetsing *********************/
+
+		//no tira por debajo de 50mV no tiene sensibilidad presuntamente
+		//Poner el 0 simulado a 50mV para que no te lo cargues.
+
+		uint32_t dataOut = WG.getAmp() * DAC_CTE_CONV;
+
+		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dataOut);
+		HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
+
+		HAL_ADC_Start(&hadc1);
+		HAL_ADC_PollForConversion(&hadc1, 1);
+		uint32_t data_in = HAL_ADC_GetValue(&hadc1);
+		HAL_ADC_Stop(&hadc1);
+
+
+		/********************* Tetsing *********************/
+
+
+
+	}
 	/* USER CODE END Callback 1 */
 }
 

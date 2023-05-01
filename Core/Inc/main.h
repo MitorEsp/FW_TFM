@@ -31,7 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -53,7 +53,7 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+void setTestStart(bool start);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -111,6 +111,11 @@ void Error_Handler(void);
 #define LD2_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
+#define EXTERNAL_FILTER 1
+
+#define FW_VERSION 		0
+#define FW_SUBVERSION	1
+
 typedef struct{
 	ADC_HandleTypeDef *ptrHadc1;
 	DAC_HandleTypeDef *ptrHdac;

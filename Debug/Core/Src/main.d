@@ -64,7 +64,8 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Middlewares/Third_Party/LwIP/src/include/lwip/ip.h \
  ../Middlewares/Third_Party/LwIP/src/include/lwip/ip6.h \
  ../Middlewares/Third_Party/LwIP/src/include/lwip/prot/ip.h \
- ../Middlewares/Third_Party/LwIP/src/include/lwip/prot/udp.h
+ ../Middlewares/Third_Party/LwIP/src/include/lwip/prot/udp.h \
+ /Users/victorespesoaparicio/Desktop/TFM/FW/FW_TFM/APP/WaveGenerator.h
 ../Core/Inc/main.h:
 ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal.h:
 ../Core/Inc/stm32f2xx_hal_conf.h:
@@ -132,3 +133,4 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Middlewares/Third_Party/LwIP/src/include/lwip/ip6.h:
 ../Middlewares/Third_Party/LwIP/src/include/lwip/prot/ip.h:
 ../Middlewares/Third_Party/LwIP/src/include/lwip/prot/udp.h:
+/Users/victorespesoaparicio/Desktop/TFM/FW/FW_TFM/APP/WaveGenerator.h:

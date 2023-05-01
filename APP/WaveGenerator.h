@@ -1,5 +1,4 @@
 
-
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __WAVEGENERATOR_H
 #define __WAVEGENERATOR_H
@@ -10,9 +9,9 @@ extern "C" {
 
 #include <stdint.h>
 
-typedef enum{
-    NO_ERROR            = (int)0,	/* No error occurred */
-    WG_GENERAL_ERROR	= (int)50   /* General or undefined error */
+typedef enum {
+	NO_ERROR = (int) 0, /* No error occurred */
+	WG_GENERAL_ERROR = (int) 50 /* General or undefined error */
 } errorWaveGenerator;
 
 //typedef enum{
@@ -21,14 +20,15 @@ typedef enum{
 //
 //}cmdWaveGenarator;
 
-struct WaveGenerator_T{
-/* variable publica */
+struct WaveGenerator_T {
 
-	void (*ProcessData) (char* bufIn, uint16_t lenIn, char* bufOut, uint16_t* lenOut, void* cb_arg);
+	void (*ProcessData)(char *bufIn, uint16_t lenIn, char *bufOut,
+			uint16_t *lenOut, void *cb_arg);
+	void (*UpdateTestStep)(void);
+	uint32_t (*getFreq)(void);
+	float (*getAmp)(void);
 
 }extern WG;
-
-
 
 #ifdef __cplusplus
 }
