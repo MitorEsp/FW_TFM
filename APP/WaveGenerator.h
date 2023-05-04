@@ -1,4 +1,3 @@
-
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __WAVEGENERATOR_H
 #define __WAVEGENERATOR_H
@@ -7,18 +6,21 @@
 extern "C" {
 #endif
 
+/* Includes ------------------------------------------------------------------*/
 #include <stdint.h>
 
+/* Private defines -----------------------------------------------------------*/
+#define DAC_FS			(float)3.3
+#define DAC_BITS		12
+#define DAC_RESOLUTION	(DAC_FS/((float)pow(2,DAC_BITS)-1.0))
+#define DAC_CTE_CONV	(float)1240.909091 /* 2^bits - 1 / FS */
+#define OFFSET_UP		0.1
+
+/* Private typedef -----------------------------------------------------------*/
 typedef enum {
 	NO_ERROR = (int) 0, /* No error occurred */
 	WG_GENERAL_ERROR = (int) 50 /* General or undefined error */
 } errorWaveGenerator;
-
-//typedef enum{
-//	WG_CMD_IDN		= "IDN?",
-//	WG_CMD_ERR		= "ERR?"
-//
-//}cmdWaveGenarator;
 
 struct WaveGenerator_T {
 
@@ -27,6 +29,11 @@ struct WaveGenerator_T {
 	void (*UpdateTestStep)(void);
 	uint32_t (*getFreq)(void);
 	float (*getAmp)(void);
+	uint16_t (*getADCPres)(void);
+	void (*storeSample)(float sample);
+	uint32_t (*getIndexofSample) (void);
+	uint32_t(*getADCSampleCount)(void);
+	void (*setADCSampleCount)(uint32_t setADCcount);
 
 }extern WG;
 
