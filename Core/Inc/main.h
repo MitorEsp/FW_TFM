@@ -114,7 +114,7 @@ void setTestStart(bool start);
 #define NOT_EXT_FILTER 1
 
 #define FW_VERSION 		0
-#define FW_SUBVERSION	3
+#define FW_SUBVERSION	4
 
 typedef struct{
 	ADC_HandleTypeDef *ptrHadc1;

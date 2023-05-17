@@ -37,7 +37,8 @@
 void Error_Handler(void);
 
 /* USER CODE BEGIN 1 */
-
+struct udp_pcb *upcb;
+ip4_addr_t remIpAddr;
 /* USER CODE END 1 */
 
 /* Variables Initialization */
@@ -51,13 +52,25 @@ uint8_t GATEWAY_ADDRESS[4];
 
 /* USER CODE BEGIN 2 */
 
+
+/**
+  * @brief  Callback for UDP datagrams
+  * @param  *arg pointer to arguments from callback creator. Contains HW handlers (ADC-DAC)
+  * @param	*upcb pointer to UDP control block in use.
+  * @param	*p pointer to payload received
+  * @param	*addr pointer to IP address UDP datagram source
+  * @param	*addr pointer to port UDP datagram source
+  * @retval	none
+  */
 void udp_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p,
 		const ip_addr_t *addr, u16_t port) {
+
 	struct pbuf *txBuf;
+
+//	HAL_NVIC_DisableIRQ(TIM3_IRQn);
 
 	/* Get the IP of the Client */
 	//char *remoteIP = ipaddr_ntoa(addr);
-
 	char bufOut[1600];
 	uint16_t lenOut = sizeof(bufOut);
 
@@ -68,6 +81,9 @@ void udp_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p,
 
 	/* copy the data into the buffer  */
 	pbuf_take(txBuf, bufOut, lenOut);
+
+	/* Save the info of pc conection */
+	ip_addr_set_ipaddr(&remIpAddr, addr);
 
 	/* Connect to the remote client */
 	udp_connect(upcb, addr, port);
@@ -83,11 +99,14 @@ void udp_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p,
 
 	/* Free the p buffer */
 	pbuf_free(p);
+
+//	HAL_NVIC_EnableIRQ(TIM3_IRQn);
+
 }
 
 void udpServer_init(void *rec_arg) {
 	// UDP Control Block structure
-	struct udp_pcb *upcb;
+	//struct udp_pcb *upcb;
 	err_t err;
 
 	/* 1. Create a new UDP control block  */
@@ -95,7 +114,8 @@ void udpServer_init(void *rec_arg) {
 
 	/* 2. Bind the upcb to the local port */
 	ip_addr_t myIPADDR;
-	IP_ADDR4(&myIPADDR, IP_ADDRESS[0], IP_ADDRESS[1], IP_ADDRESS[2], IP_ADDRESS[3]);
+	IP_ADDR4(&myIPADDR, IP_ADDRESS[0], IP_ADDRESS[1], IP_ADDRESS[2],
+			IP_ADDRESS[3]);
 
 	err = udp_bind(upcb, &myIPADDR, 7);  // 7 is the server UDP port
 

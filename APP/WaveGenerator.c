@@ -5,9 +5,11 @@
 
 #include "WaveGenerator.h"
 #include "main.h"
+#include "lwip.h"
 
 /* Private macros */
-#define SAMPLES_PERIOD 20 /* Samples measured per period */
+#define SAMPLES_PERIOD	20 /* Samples measured per period */
+#define	SAMPLE_FREQ		50000 /* Frequency to DAC sampling */
 
 /* Private variables ---------------------------------------------------------*/
 uint32_t actualFreq; /* Actual frequency test */
@@ -29,11 +31,19 @@ float buffSamples[255]; /* Variable where store the samples */
 static errorWaveGenerator WG_IDN(char *bufOut, uint16_t *lenOut);
 static errorWaveGenerator WG_TST(char *bufOut, uint16_t *lenOut, void *cb_arg);
 static errorWaveGenerator WG_ABOR(char *bufOut, uint16_t *lenOut, void *cb_arg);
-static errorWaveGenerator WG_INIT(char *bufOut, uint16_t *lenOut, void *cb_arg);
-static void resetOwnVars(void);
+static errorWaveGenerator WG_INIT(char *bufOut, uint16_t *lenOut/*,void *cb_arg*/);
+static errorWaveGenerator WG_UPD(char *bufOut, uint16_t *lenOut);
+static errorWaveGenerator WG_KEEP(char *bufOut, uint16_t *lenOut);
+static void Reset_Own_Vars(void);
 
 /* Private user code ---------------------------------------------------------*/
 
+/**
+  * @brief  Process the instruction to provide the identification of uC.
+  * @param	none
+  * @retval	bufOut pointer that will contain the data to outside the uC.
+  * @retval	lenOut length of bufOut.
+  */
 static errorWaveGenerator WG_IDN(char *bufOut, uint16_t *lenOut) {
 
 	/* *IDN?
@@ -56,8 +66,14 @@ static errorWaveGenerator WG_IDN(char *bufOut, uint16_t *lenOut) {
 					(int) FW_SUBVERSION);
 
 	return NO_ERROR;
-}
+}//WG_IDN
 
+/**
+  * @brief  Process the instruction to auto-test the loopback DAC-ADC.
+  * @retval	bufOut pointer that will contain the data to outside the uC.
+  * @retval	lenOut length of bufOut.
+  * @param	cb_arg pointer HW handlers (ADC & DAC)
+  */
 static errorWaveGenerator WG_TST(char *bufOut, uint16_t *lenOut, void *cb_arg) {
 
 	uint16_t dataIn = 0, dataOut = 2000;
@@ -87,8 +103,14 @@ static errorWaveGenerator WG_TST(char *bufOut, uint16_t *lenOut, void *cb_arg) {
 	*lenOut = sprintf(bufOut, "DAC-ADC loopback has %.3f%% of error", error);
 
 	return NO_ERROR;
-}
+}//WG_TST
 
+/**
+  * @brief  Process the instruction to stop the test in uC.
+  * @retval	bufOut pointer that will contain the data to outside the uC.
+  * @retval	lenOut length of bufOut.
+  * @param	cb_arg pointer HW handlers (ADC & DAC)
+  */
 static errorWaveGenerator WG_ABOR(char *bufOut, uint16_t *lenOut, void *cb_arg) {
 
 	setTestStart(false);
@@ -100,33 +122,42 @@ static errorWaveGenerator WG_ABOR(char *bufOut, uint16_t *lenOut, void *cb_arg) 
 	HAL_DAC_SetValue(ptrHWp.ptrHdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 0);
 	HAL_DAC_Start(ptrHWp.ptrHdac, DAC_CHANNEL_1);
 	HAL_DAC_Stop(ptrHWp.ptrHdac, DAC_CHANNEL_1);
-	HAL_ADC_Stop(ptrHWp.ptrHadc1);
+//	HAL_ADC_Stop(ptrHWp.ptrHadc1);
 
 	*lenOut =
 			flagEndTest ?
 					sprintf(bufOut, "Test end") :
 					sprintf(bufOut, "Test terminated manually");
 
-	resetOwnVars();
+	Reset_Own_Vars();
 
 	return NO_ERROR;
-}
+}//WG_ABOR
 
-static errorWaveGenerator WG_INIT(char *bufOut, uint16_t *lenOut, void *cb_arg) {
+/**
+  * @brief  Process the instruction to start the test in uC.
+  * @param	none
+  * @retval	bufOut pointer that will contain the data to outside the uC.
+  * @retval	lenOut length of bufOut.
+  */
+static errorWaveGenerator WG_INIT(char *bufOut, uint16_t *lenOut/*,void *cb_arg*/) {
 
-	resetOwnVars();
+	Reset_Own_Vars();
 
-	ptrHWparams ptrHWp;
-	memcpy(&ptrHWp, cb_arg, sizeof(ptrHWp));
-	HAL_ADC_Start(ptrHWp.ptrHadc1);
-
-	*lenOut = sprintf(bufOut, "Test initialized");
+	//*lenOut = sprintf(bufOut, "Test initialized");
+	*lenOut = 0;
 
 	setTestStart(true);
 
 	return NO_ERROR;
-}
+}//WG_INIT
 
+/**
+  * @brief  Process the instruction update data from uC to PC
+  * @param	none
+  * @retval	bufOut pointer that will contain the data to outside the uC.
+  * @retval	lenOut length of bufOut.
+  */
 static errorWaveGenerator WG_UPD(char *bufOut, uint16_t *lenOut) {
 
 	*lenOut =
@@ -136,15 +167,40 @@ static errorWaveGenerator WG_UPD(char *bufOut, uint16_t *lenOut) {
 
 	uint8_t auxLen = 0;
 
-	for (uint16_t findex = 0; findex < sizeof(buffSamples); findex++) {
-		auxLen = sprintf(bufOut, "%.3f ",
-				buffSamples[findex] > 0.0 ? buffSamples[findex] : 0.0);
-		*lenOut += auxLen;
-	}
+//	for (uint16_t findex = 0; findex < sizeof(buffSamples); findex++) {
+//		/* THIS MUST BE APPEND */
+//		auxLen = sprintf(bufOut, "%.3f ",
+//				buffSamples[findex] > 0.0 ? buffSamples[findex] : 0.0);
+//		*lenOut += auxLen;
+//	}
 
 	return NO_ERROR;
-}
+}//WG_UPD
 
+/**
+  * @brief  Process the instruction to carry on with the test
+  * @param	none
+  * @retval	bufOut pointer that will contain the data to outside the uC.
+  * @retval	lenOut length of bufOut.
+  */
+static errorWaveGenerator WG_KEEP(char *bufOut, uint16_t *lenOut) {
+
+	setTestStart(true);
+
+	//*lenOut = sprintf(bufOut, "Test in progress");
+	*lenOut = 0;
+
+	return NO_ERROR;
+}//WG_KEEP
+
+/**
+  * @brief  Process the incoming datagram.
+  * @param  bufIn pointer that contains the payload of a incoming datagram.
+  * @param	lenIn length of pointer bufIn.
+  * @param	cb_arg pointer to arguments provided from UDP callback.
+  * @retval	bufOut pointer that will contain the data to outside the uC.
+  * @retval	lenOut length of bufOut.
+  */
 void WG_Process_Data(char *bufIn, uint16_t lenIn, char *bufOut,
 		uint16_t *lenOut, void *cb_arg) {
 
@@ -162,20 +218,29 @@ void WG_Process_Data(char *bufIn, uint16_t lenIn, char *bufOut,
 	}
 	/* Initiate the test */
 	else if (strcmp(bufIn + 4, "INIT") == 0) {
-		WG_INIT(bufOut, lenOut, cb_arg);
+		WG_INIT(bufOut, lenOut/*, cb_arg*/);
 	}
 	/* Update info for the PC */
 	else if (strcmp(bufIn + 4, "UPD") == 0) {
 		WG_UPD(bufOut, lenOut);
+	}
+	/* Keep the test  */
+	else if (strcmp(bufIn + 4, "KEEP") == 0) {
+		WG_KEEP(bufOut, lenOut);
 	}
 	/* Default case */
 	else {
 		*lenOut = sprintf(bufOut, "No valid command has sent");
 	}
 
-}
+}//WG_Process_Data
 
-static void resetOwnVars(void) {
+/**
+  * @brief  Reset all in tests used variables.
+  * @param  None
+  * @retval	None
+  */
+static void Reset_Own_Vars(void) {
 	actualFreq = 30;
 	actualAmp = 3.0;
 	flagFrecRetries = false;
@@ -186,9 +251,15 @@ static void resetOwnVars(void) {
 	mIdx.safeMem = 0;
 	sIdx = 0;
 	memset(buffSamples, 0, sizeof(buffSamples));
-}
+}//Reset_Own_Vars
 
+/**
+  * @brief  Update the parameters between frequency test steps.
+  * @param  None
+  * @retval	None
+  */
 void WG_Update_Test_Step(void) {
+
 
 	/* if it's needed to repeat the frequency for the feedback */
 	if (flagFrecRetries) {
@@ -215,7 +286,7 @@ void WG_Update_Test_Step(void) {
 			actualFreq = (actualFreq * 1.05);
 
 			/* Calculate the new sample frequency pre-scaler */
-			ADCprescaler = 1000000 / (actualFreq * SAMPLES_PERIOD);
+			ADCprescaler = SAMPLE_FREQ / (actualFreq * SAMPLES_PERIOD);
 
 			/* Reset data stored and index */
 			memset(buffSamples, 0, sizeof(buffSamples));
@@ -240,38 +311,74 @@ void WG_Update_Test_Step(void) {
 		}
 
 	}
-}
+}//WG_Update_Test_Step
 
+/**
+  * @brief  Actual frequency step getter.
+  * @param  None
+  * @retval	actualFreq Actual frequency step test.
+  */
 uint32_t WG_Get_Frequency(void) {
 	return actualFreq;
 }
 
+/**
+  * @brief  Amplitude step getter.
+  * @param  None
+  * @retval	actualAmp Actual Amplitude step test.
+  */
 float WG_Get_Amplitude(void) {
 	return actualAmp;
 }
 
+/**
+  * @brief  Pre-scaler to ADC sampling getter.
+  * @param  None
+  * @retval	ADCprescaler Actual ADC pre-scaler step test.
+  */
 uint16_t WG_Get_ADC_Prescaler(void) {
 	return ADCprescaler;
 }
 
+/**
+  * @brief  Stores the input samples in a array to provides to PC.
+  * @param  sample
+  * @retval	None
+  */
 void WG_Store_Sample(float sample) {
 	buffSamples[mIdx.ii++] = sample;
 }
 
+/**
+  * @brief  Index of sample to generate in output (DAC) getter.
+  * 		Increments one for the next call.
+  * @param  None
+  * @retval	sIdx Actual index of output sample.
+  */
 uint32_t WG_Get_Index_of_Sample(void) {
-	return sIdx;
+	return sIdx++;
 }
 
+/**
+  * @brief  Actual count to pre-scaler ADC sampling getter.
+  * @param  None
+  * @retval	ADCcount Actual count to pre-scaler ADC sampling.
+  */
 uint32_t WG_Get_ADC_Sample_Count(void) {
 	return ADCcount;
 }
 
+/**
+  * @brief  Actual count to pre-scaler ADC sampling setter.
+  * @param  ADCcount Actual count to pre-scaler ADC sampling.
+  * @retval	None
+  */
 void WG_Set_ADC_Sample_Count(uint32_t setADCcount) {
 	ADCcount = setADCcount;
 }
 
+/* Pointer provider struct to public functions. */
 struct WaveGenerator_T WG = {
-/* .variablePublica = ; */
 .ProcessData = WG_Process_Data, /* */
 .UpdateTestStep = WG_Update_Test_Step, /* */
 .getFreq = WG_Get_Frequency, /* */

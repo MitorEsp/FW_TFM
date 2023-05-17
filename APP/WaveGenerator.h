@@ -22,6 +22,8 @@ typedef enum {
 	WG_GENERAL_ERROR = (int) 50 /* General or undefined error */
 } errorWaveGenerator;
 
+
+
 struct WaveGenerator_T {
 
 	void (*ProcessData)(char *bufIn, uint16_t lenIn, char *bufOut,
