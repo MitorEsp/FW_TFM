@@ -9,7 +9,6 @@
 
 /* Private macros */
 #define SAMPLES_PERIOD	20 /* Samples measured per period */
-#define	SAMPLE_FREQ		50000 /* Frequency to DAC sampling */
 
 /* Private variables ---------------------------------------------------------*/
 uint32_t actualFreq; /* Actual frequency test */

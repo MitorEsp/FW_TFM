@@ -42,6 +42,9 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+
+
+
 ADC_HandleTypeDef hadc1;
 
 DAC_HandleTypeDef hdac;
@@ -51,10 +54,22 @@ TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
 
+extern float actualAmp; /* Actual amplitude test */
+extern uint32_t actualFreq; /* Actual frequency test */
+extern uint32_t sIdx; /* Sample index of DAC */
+extern union {
+	uint8_t ii;
+	uint64_t safeMem;
+} mIdx;/* Index where is stored the data measured */
+extern float buffSamples[255]; /* Variable where store the samples */
+extern uint16_t ADCcount; /* Count to divide the ADC sampling frequency */
+
 uint16_t countSamples;
 uint32_t sampleCount;
 uint32_t dataIn;
 uint32_t dataOut;
+
+uint32_t record[1000];
 
 /* USER CODE END PV */
 
@@ -116,11 +131,6 @@ int main(void) {
 	ptrHWparams ptrHWp;
 	ptrHWp.ptrHadc1 = &hadc1;
 	ptrHWp.ptrHdac = &hdac;
-
-	HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 3400);
-	HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
-	HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 1300);
-	HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
 
 	udpServer_init((void*) &ptrHWp);
 
@@ -452,34 +462,42 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 	}
 
-	/* 1 MHz timer */
-	else if (htim->Instance == TIM3) {
+	/* 50KHz timer */
+	/* else */if (htim->Instance == TIM3) {
 
 		/* Sampling in the output this calculus */
 		/* { Offset + [ (Amp/2) × (1 + cos(2pi × F0 × Ts × i) ] } / DAC_RES */
 		dataOut = (uint32_t) (DAC_CTE_CONV
 				* (OFFSET_UP
-						+ ((WG.getAmp() / 2.0)
+						+ ((actualAmp / 2.0)
 								* (cos(
 										2.0 * M_PI
-												* ((float) WG.getFreq())
-												* ((float) WG.getIndexofSample())
-												/ 1000000.0) + 1))));
+												* ((float)actualFreq)
+												* ((float)sIdx)
+												/ SAMPLE_FREQ) + 1.0))));
 		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dataOut);
 		HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
 
+		/////////////
+		record[sIdx] = dataOut;
+		if(sIdx > 500){
+
+			sIdx =0;
+		}
+		///////////////
+
+		sIdx++;
+
 		sampleCount = WG.getADCSampleCount();
 		if (sampleCount >= WG.getADCPres()) {
-			/* NO ESTA MIDIENDO NADA */
 			HAL_ADC_Start(&hadc1);
 			HAL_ADC_PollForConversion(&hadc1, 1);
 			dataIn = HAL_ADC_GetValue(&hadc1);
 			HAL_ADC_Stop(&hadc1);
-			WG.storeSample((dataIn / DAC_CTE_CONV ) - OFFSET_UP);
-			WG.setADCSampleCount(0);
+			buffSamples[mIdx.ii++] = (dataIn / DAC_CTE_CONV ) - OFFSET_UP;
+			ADCcount = 0;
 		} else {
-			WG.setADCSampleCount(++sampleCount);
-
+			ADCcount++;
 		}
 
 	}
