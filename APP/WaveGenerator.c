@@ -18,13 +18,14 @@ uint8_t cntFrecRetries; /* Retries counter if the measurements is out of valid m
 bool flagEndTest; /* Indicates the end of the test */
 uint16_t ADCprescaler; /* Pre-scaler to measure 20 samples máx. per period */
 uint16_t ADCcount; /* Count to divide the ADC sampling frequency */
+float sampleFreq; /* Sampling DAC-ADC frequency */
 
 union {
 	uint8_t ii;
 	uint64_t safeMem;
 } mIdx;/* Index where is stored the data measured */
 uint32_t sIdx; /* Sample index of DAC */
-float buffSamples[255]; /* Variable where store the samples */
+float buffSamples[256]; /* Variable where store the samples */
 
 /* Private function prototypes -----------------------------------------------*/
 static errorWaveGenerator WG_IDN(char *bufOut, uint16_t *lenOut);
@@ -241,6 +242,7 @@ void WG_Process_Data(char *bufIn, uint16_t lenIn, char *bufOut,
   */
 static void Reset_Own_Vars(void) {
 	actualFreq = 30;
+	sampleFreq = actualFreq * NUM_PTS;
 	actualAmp = 3.0;
 	flagFrecRetries = false;
 	cntFrecRetries = 0;
@@ -283,6 +285,7 @@ void WG_Update_Test_Step(void) {
 
 			/* Calculate new parameters for new frequency test*/
 			actualFreq = (actualFreq * 1.05);
+			sampleFreq = actualFreq * NUM_PTS;
 
 			/* Calculate the new sample frequency pre-scaler */
 			ADCprescaler = SAMPLE_FREQ / (actualFreq * SAMPLES_PERIOD);

@@ -15,6 +15,7 @@ extern "C" {
 #define DAC_RESOLUTION	(DAC_FS/((float)pow(2,DAC_BITS)-1.0))
 #define DAC_CTE_CONV	(float)1240.909091 /* 2^bits - 1 / FS */
 #define OFFSET_UP		0.1
+#define NUM_PTS			20.0
 #define	SAMPLE_FREQ		50000.0 /* Frequency to DAC sampling */
 
 /* Private typedef -----------------------------------------------------------*/

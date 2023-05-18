@@ -111,10 +111,12 @@ void setTestStart(bool start);
 #define LD2_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-#define NOT_EXT_FILTER 1
+#define NOT_EXT_FILTER	1
 
 #define FW_VERSION 		0
 #define FW_SUBVERSION	4
+
+#define TIM_CLK			120000000.0
 
 typedef struct{
 	ADC_HandleTypeDef *ptrHadc1;
