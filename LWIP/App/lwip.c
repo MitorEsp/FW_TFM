@@ -66,12 +66,13 @@ void udp_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p,
 		const ip_addr_t *addr, u16_t port) {
 
 	struct pbuf *txBuf;
+	err_t errorUDP = ERR_OK;
 
 //	HAL_NVIC_DisableIRQ(TIM3_IRQn);
 
 	/* Get the IP of the Client */
 	//char *remoteIP = ipaddr_ntoa(addr);
-	char bufOut[1600];
+	char bufOut[2000];
 	uint16_t lenOut = sizeof(bufOut);
 
 	WG.ProcessData(p->payload, p->len, bufOut, &lenOut, arg);
@@ -86,10 +87,10 @@ void udp_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p,
 	ip_addr_set_ipaddr(&remIpAddr, addr);
 
 	/* Connect to the remote client */
-	udp_connect(upcb, addr, port);
+	errorUDP = udp_connect(upcb, addr, port);
 
 	/* Send a Reply to the Client */
-	udp_send(upcb, txBuf);
+	errorUDP = udp_send(upcb, txBuf);
 
 	/* free the UDP connection, so we can accept new clients */
 	udp_disconnect(upcb);

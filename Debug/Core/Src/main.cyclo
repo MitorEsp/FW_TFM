@@ -5,6 +5,6 @@ main.c:260:13:MX_DAC_Init	3
 main.c:300:13:MX_TIM2_Init	4
 main.c:345:13:MX_GPIO_Init	1
 main.c:419:6:setTestStart	2
-main.c:428:13:Reconfigure_TIM2	4
+main.c:428:18:Reconfigure_TIM2	4
 main.c:468:6:HAL_TIM_PeriodElapsedCallback	7
-main.c:565:6:Error_Handler	1
+main.c:562:6:Error_Handler	1

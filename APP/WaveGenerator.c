@@ -27,6 +27,9 @@ union {
 uint32_t sIdx; /* Sample index of DAC */
 float buffSamples[256]; /* Variable where store the samples */
 
+extern uint32_t ARR;	/* Auto Reload Register for TIM2 */
+extern uint32_t PSC;	/* Pre-scaler for TIM2 */
+
 /* Private function prototypes -----------------------------------------------*/
 static errorWaveGenerator WG_IDN(char *bufOut, uint16_t *lenOut);
 static errorWaveGenerator WG_TST(char *bufOut, uint16_t *lenOut, void *cb_arg);
@@ -167,12 +170,15 @@ static errorWaveGenerator WG_UPD(char *bufOut, uint16_t *lenOut) {
 
 	uint8_t auxLen = 0;
 
-//	for (uint16_t findex = 0; findex < sizeof(buffSamples); findex++) {
-//		/* THIS MUST BE APPEND */
-//		auxLen = sprintf(bufOut, "%.3f ",
-//				buffSamples[findex] > 0.0 ? buffSamples[findex] : 0.0);
-//		*lenOut += auxLen;
-//	}
+	/* I do not why I can send 240 data and not all buffer (256) */
+	for (uint16_t findex = 0; findex <  240; findex++) {
+		auxLen = sprintf(bufOut + *lenOut, "%.3f ",
+				buffSamples[findex] > 0.0 ? buffSamples[findex] : 0.0);
+		*lenOut += auxLen;
+
+	}
+
+	WG.UpdateTestStep();
 
 	return NO_ERROR;
 }//WG_UPD
@@ -286,6 +292,10 @@ void WG_Update_Test_Step(void) {
 			/* Calculate new parameters for new frequency test*/
 			actualFreq = (actualFreq * 1.05);
 			sampleFreq = actualFreq * NUM_PTS;
+
+			ARR = - 1.0 + (TIM_CLK / (sampleFreq * (PSC+1) ));
+
+			Reconfigure_TIM2();
 
 			/* Calculate the new sample frequency pre-scaler */
 			ADCprescaler = SAMPLE_FREQ / (actualFreq * SAMPLES_PERIOD);

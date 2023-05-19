@@ -141,13 +141,13 @@ int main(void)
 	sampleFreq = actualFreq * 20.0;
 	PSC = 79;
 
-	HAL_TIM_Base_Start_IT(&htim2);
+//	HAL_TIM_Base_Start_IT(&htim2);
 	//////////////////////
 
 	udpServer_init((void*) &ptrHWp);
 
   /* USER CODE END 2 */
-
+	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
@@ -425,7 +425,7 @@ void setTestStart(bool start) {
 
 
 
-static void Reconfigure_TIM2(void)
+/* static*/ void Reconfigure_TIM2(void)
 {
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
@@ -470,6 +470,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	/* variable timer */
 	if (htim->Instance == TIM2) {
 
+		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
 
 
 		dataOut = (uint32_t) (DAC_CTE_CONV
@@ -492,12 +493,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 		if(1 < (float)sIdx / sampleFreq){
 			HAL_TIM_Base_Stop_IT(&htim2);
-			WG.UpdateTestStep();
-
-			ARR = - 1.0 + (TIM_CLK / (sampleFreq * (PSC+1) ));
-
-			Reconfigure_TIM2();
-			HAL_TIM_Base_Start_IT(&htim2);
+			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+			//HAL_TIM_Base_Start_IT(&htim2);
 		}
 
 

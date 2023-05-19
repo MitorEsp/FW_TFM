@@ -124,6 +124,8 @@ typedef struct{
 }ptrHWparams;
 
 
+void Reconfigure_TIM2(void);
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
