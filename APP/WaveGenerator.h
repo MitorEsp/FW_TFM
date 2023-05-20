@@ -18,6 +18,12 @@ extern "C" {
 #define NUM_PTS			20.0
 #define	SAMPLE_FREQ		50000.0 /* Frequency to DAC sampling */
 
+#define TIM_CLK 120000000.0
+#define MAX_SAMPLE_FREQ 80000.0
+#define MAX_AMP 3.0
+#define MAX_ARR 4294967295
+
+
 /* Private typedef -----------------------------------------------------------*/
 typedef enum {
 	NO_ERROR = (int) 0, /* No error occurred */
@@ -28,6 +34,7 @@ typedef enum {
 
 struct WaveGenerator_T {
 
+	void (*Initialice)(void);
 	void (*ProcessData)(char *bufIn, uint16_t lenIn, char *bufOut,
 			uint16_t *lenOut, void *cb_arg);
 	void (*UpdateTestStep)(void);
