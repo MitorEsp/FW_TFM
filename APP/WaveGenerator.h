@@ -19,7 +19,7 @@ extern "C" {
 #define	SAMPLE_FREQ		50000.0 /* Frequency to DAC sampling */
 
 #define TIM_CLK 120000000.0
-#define MAX_SAMPLE_FREQ 80000.0
+#define MAX_SAMPLE_FREQ 50000.0
 #define MAX_AMP 3.0
 #define MAX_ARR 4294967295
 

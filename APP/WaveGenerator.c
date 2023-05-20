@@ -24,11 +24,8 @@ union {
 	uint8_t ii;
 	uint64_t safeMem;
 } mIdx;/* Index where is stored the data measured */
-uint32_t sIdx; /* Sample index of DAC */
+float sIdx; /* Sample index of DAC */
 float buffSamples[256]; /* Variable where store the samples */
-
-extern uint32_t ARR; /* Auto Reload Register for TIM2 */
-extern uint32_t PSC; /* Pre-scaler for TIM2 */
 
 struct waveGeneratorInfo {
 	uint32_t ARR; /* Auto Reload Register for TIM2 */
@@ -39,7 +36,12 @@ struct waveGeneratorInfo {
 	float actualAmp;
 };
 
-struct waveGeneratorInfo wgTable[180]; /* This vector has all step data */
+uint8_t tstStep;
+
+struct waveGeneratorInfo wgD[180]; /* This vector has all step data */
+
+char udpBufOut[1200]; /* ¡Caution with this length, it depends in the number of samples to send */
+uint16_t udpLenOut;
 
 /* Private function prototypes -----------------------------------------------*/
 static errorWaveGenerator WG_IDN(char *bufOut, uint16_t *lenOut);
@@ -176,20 +178,23 @@ static errorWaveGenerator WG_INIT(char *bufOut,
  */
 static errorWaveGenerator WG_UPD(char *bufOut, uint16_t *lenOut) {
 
-	*lenOut =
-			flagEndTest ?
-					sprintf(bufOut, "END %lu ", actualFreq) :
-					sprintf(bufOut, "RUN %lu ", actualFreq);
+//	*lenOut =
+//			flagEndTest ?
+//					sprintf(bufOut, "END %.3f ", wgD[tstStep].actualFreq) :
+//					sprintf(bufOut, "RUN %.3f ", wgD[tstStep].actualFreq);
+//
+//	uint8_t auxLen = 0;
+//
+//	/* I do not why I can send 200 data and not all buffer (256) */
+//	for (uint16_t findex = 0; findex < 200; findex++) {
+//		auxLen = sprintf(bufOut + *lenOut, "%.3f ",
+//				buffSamples[findex] > 0.0 ? buffSamples[findex] : 0.0);
+//		*lenOut += auxLen;
+//
+//	}
 
-	uint8_t auxLen = 0;
-
-	/* I do not why I can send 240 data and not all buffer (256) */
-	for (uint16_t findex = 0; findex < 240; findex++) {
-		auxLen = sprintf(bufOut + *lenOut, "%.3f ",
-				buffSamples[findex] > 0.0 ? buffSamples[findex] : 0.0);
-		*lenOut += auxLen;
-
-	}
+	*lenOut = udpLenOut;
+	memcpy(bufOut,udpBufOut,udpLenOut);
 
 	WG.UpdateTestStep();
 
@@ -309,6 +314,7 @@ void WG_Initialice(void) {
 		/* Re-calculate sampleFreq */
 		wgInfo.sampleFreq = wgInfo.actualFreq * wgInfo.numPtos;
 
+		/* if a external filter limits the amplitude its no need to recalculate here */
 #if NOT_EXT_FILTER
 		/* Re-calcualte amplitude */
 		/* Constant Area */
@@ -322,7 +328,7 @@ void WG_Initialice(void) {
 #endif
 
 		/* Store info */
-		wgTable[numIterations] = wgInfo;
+		wgD[numIterations] = wgInfo;
 
 		/* 5% of freq increment */
 		wgInfo.actualFreq = wgInfo.actualFreq * 1.05;
@@ -343,14 +349,11 @@ void WG_Initialice(void) {
  * @retval	None
  */
 static void Reset_Own_Vars(void) {
-	actualFreq = 30;
-	sampleFreq = actualFreq * NUM_PTS;
-	actualAmp = 3.0;
+
+	tstStep = 0;
 	flagFrecRetries = false;
 	cntFrecRetries = 0;
 	flagEndTest = false;
-	ADCprescaler = 1000000 / (actualFreq * SAMPLES_PERIOD);
-	ADCcount = 0;
 	mIdx.safeMem = 0;
 	sIdx = 0;
 	memset(buffSamples, 0, sizeof(buffSamples));
@@ -384,11 +387,8 @@ void WG_Update_Test_Step(void) {
 			cntFrecRetries = 0;
 			flagFrecRetries = false;
 
-			/* Calculate new parameters for new frequency test*/
-			actualFreq = (actualFreq * 1.05);
-			sampleFreq = actualFreq * NUM_PTS;
-
-	//		ARR = -1.0 + (TIM_CLK / (sampleFreq * (PSC + 1)));
+			/* Increments the index where restore data step info */
+			tstStep++;
 
 			Reconfigure_TIM2();
 
@@ -399,21 +399,6 @@ void WG_Update_Test_Step(void) {
 			mIdx.safeMem = 0;
 			sIdx = 0; /* The máx index achieved in 10 seconds is 10^7, the máx number of uint32 is ~4*10^9 */
 
-			/* if a external filter limits the amplitude its no need to recalculate here */
-#if NOT_EXT_FILTER
-			/* Constant Area */
-			if (actualFreq < 50) {
-				actualAmp = 3.0;
-			}
-			/* First order system behavior */
-			else {
-				actualAmp = 3.0 / sqrt(1 + pow(actualFreq / 50.0, 2));
-			}
-#endif
-
-			/* Fit the last frequency to 10KHz*/
-			if (actualFreq > 100000)
-				actualFreq = 100000;
 		}
 
 	}

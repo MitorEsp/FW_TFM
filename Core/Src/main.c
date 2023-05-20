@@ -52,7 +52,7 @@ TIM_HandleTypeDef htim2;
 
 extern float actualAmp; /* Actual amplitude test */
 extern uint32_t actualFreq; /* Actual frequency test */
-extern uint32_t sIdx; /* Sample index of DAC */
+extern float sIdx; /* Sample index of DAC */
 extern union {
 	uint8_t ii;
 	uint64_t safeMem;
@@ -61,6 +61,8 @@ extern float buffSamples[256]; /* Variable where store the samples */
 extern uint16_t ADCcount; /* Count to divide the ADC sampling frequency */
 
 extern float sampleFreq; /* Sampling DAC-ADC frequency */
+
+extern bool flagEndTest; /* Indicates the end of the test */
 
 extern struct waveGeneratorInfo {
 	uint32_t ARR; /* Auto Reload Register for TIM2 */
@@ -71,14 +73,16 @@ extern struct waveGeneratorInfo {
 	float actualAmp;
 };
 
-extern struct waveGeneratorInfo wgTable[180]; /* This vector has all step data */
+extern struct waveGeneratorInfo wgD[180]; /* This vector has all step data */
 
-uint16_t countSamples;
-uint32_t sampleCount;
+extern uint8_t tstStep; /* Index to restore the step test data*/
+
 uint32_t dataIn;
 uint32_t dataOut;
 
-uint32_t record[1000];
+
+extern char udpBufOut[1200]; /* ¡Caution with this length, it depends in the number of samples to send */
+extern uint16_t udpLenOut;
 
 /* USER CODE END PV */
 
@@ -130,23 +134,10 @@ int main(void) {
 	MX_TIM2_Init();
 	/* USER CODE BEGIN 2 */
 
-	countSamples = 0;
-	sampleCount = 0;
-	dataIn = 0;
-	dataOut = 0;
 
 	ptrHWparams ptrHWp;
 	ptrHWp.ptrHadc1 = &hadc1;
 	ptrHWp.ptrHdac = &hdac;
-
-	/////////////////////
-	actualAmp = 3.0;
-	mIdx.safeMem = 0;
-	actualFreq = 30;
-	sampleFreq = actualFreq * 20.0;
-
-//	HAL_TIM_Base_Start_IT(&htim2);
-	//////////////////////
 
 	/* Pre calculates all test timer parameters */
 	WG.Initialice();
@@ -423,9 +414,9 @@ void setTestStart(bool start) {
 	TIM_MasterConfigTypeDef sMasterConfig = { 0 };
 
 	htim2.Instance = TIM2;
-//  htim2.Init.Prescaler = PSC;
+	htim2.Init.Prescaler = wgD[tstStep].PSC;
 	htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-//  htim2.Init.Period = ARR;
+	htim2.Init.Period = wgD[tstStep].ARR;
 	htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 	htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 	if (HAL_TIM_Base_Init(&htim2) != HAL_OK) {
@@ -459,13 +450,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
 
-		dataOut = (uint32_t) (DAC_CTE_CONV
-				* (OFFSET_UP
-						+ ((actualAmp / 2.0)
-								* (cos(
-										2.0 * M_PI * ((float) actualFreq)
-												* ((float) sIdx) / sampleFreq)
-										+ 1.0))));
+		dataOut =
+				(uint32_t) (DAC_CTE_CONV
+						* (OFFSET_UP
+								+ ((wgD[tstStep].actualAmp / 2.0)
+										* (cos(
+												2.0 * M_PI
+														* ((float) wgD[tstStep].actualFreq)
+														* (sIdx)
+														/ wgD[tstStep].sampleFreq)
+												+ 1.0))));
 		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dataOut);
 		HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
 
@@ -477,64 +471,31 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 		sIdx++;
 
-		if (1 < (float) sIdx / sampleFreq) {
+		if (1 < sIdx / wgD[tstStep].sampleFreq) {
+			uint8_t auxLen = 0;
+
 			HAL_TIM_Base_Stop_IT(&htim2);
 			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
-			//HAL_TIM_Base_Start_IT(&htim2);
+
+			/* Makes the string to send to PC */
+			udpLenOut =
+					flagEndTest ?
+							sprintf(udpBufOut, "END %.3f ", wgD[tstStep].actualFreq) :
+							sprintf(udpBufOut, "RUN %.3f ", wgD[tstStep].actualFreq);
+
+			uint16_t findex;
+			/* I do not why I can send 200 data and not all buffer (256) */
+			for ( findex = 0; findex < 200; findex++) {
+				auxLen = sprintf(udpBufOut + udpLenOut, "%.3f ",
+						buffSamples[findex] > 0.0 ? buffSamples[findex] : 0.0);
+				udpLenOut += auxLen;
+
+			}
+			asm("NOP");
+
 		}
 
 	}
-
-//	/* 1 Hz timer */
-//	if (htim->Instance == TIM3) {
-//
-//		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
-//
-//		/* Update all parameters in this second */
-//		WG.UpdateTestStep();
-//
-//		setTestStart(false);
-//
-//	}
-//
-//	/* 50KHz timer */
-//	/* else */if (htim->Instance == TIM4) {
-//
-//		/* Sampling in the output this calculus */
-//		/* { Offset + [ (Amp/2) × (1 + cos(2pi × F0 × Ts × i) ] } / DAC_RES */
-//		dataOut = (uint32_t) (DAC_CTE_CONV
-//				* (OFFSET_UP
-//						+ ((actualAmp / 2.0)
-//								* (cos(
-//										2.0 * M_PI * ((float) actualFreq)
-//												* ((float) sIdx) / SAMPLE_FREQ)
-//										+ 1.0))));
-//		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dataOut);
-//		HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
-//
-//		/////////////
-//		record[sIdx] = dataOut;
-//		if (sIdx > 500) {
-//
-//			sIdx = 0;
-//		}
-//		///////////////
-//
-//		sIdx++;
-//
-//		sampleCount = WG.getADCSampleCount();
-//		if (sampleCount >= WG.getADCPres()) {
-//			HAL_ADC_Start(&hadc1);
-//			HAL_ADC_PollForConversion(&hadc1, 1);
-//			dataIn = HAL_ADC_GetValue(&hadc1);
-//			HAL_ADC_Stop(&hadc1);
-//			buffSamples[mIdx.ii++] = (dataIn / DAC_CTE_CONV ) - OFFSET_UP;
-//			ADCcount = 0;
-//		} else {
-//			ADCcount++;
-//		}
-//
-//	}
 }
 
 /* USER CODE END 4 */

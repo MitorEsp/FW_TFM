@@ -37,8 +37,7 @@
 void Error_Handler(void);
 
 /* USER CODE BEGIN 1 */
-struct udp_pcb *upcb;
-ip4_addr_t remIpAddr;
+
 /* USER CODE END 1 */
 
 /* Variables Initialization */
@@ -49,6 +48,7 @@ ip4_addr_t gw;
 uint8_t IP_ADDRESS[4];
 uint8_t NETMASK_ADDRESS[4];
 uint8_t GATEWAY_ADDRESS[4];
+
 
 /* USER CODE BEGIN 2 */
 
@@ -66,14 +66,10 @@ void udp_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p,
 		const ip_addr_t *addr, u16_t port) {
 
 	struct pbuf *txBuf;
-	err_t errorUDP = ERR_OK;
+	/* err_t errorUDP = ERR_OK; */
 
-//	HAL_NVIC_DisableIRQ(TIM3_IRQn);
-
-	/* Get the IP of the Client */
-	//char *remoteIP = ipaddr_ntoa(addr);
-	char bufOut[2000];
-	uint16_t lenOut = sizeof(bufOut);
+	char bufOut[1200]; /* ¡Caution with this length, it depends in the number of samples to send */
+	uint16_t lenOut;
 
 	WG.ProcessData(p->payload, p->len, bufOut, &lenOut, arg);
 
@@ -83,14 +79,11 @@ void udp_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p,
 	/* copy the data into the buffer  */
 	pbuf_take(txBuf, bufOut, lenOut);
 
-	/* Save the info of pc conection */
-	ip_addr_set_ipaddr(&remIpAddr, addr);
-
 	/* Connect to the remote client */
-	errorUDP = udp_connect(upcb, addr, port);
+	/* errorUDP =*/ udp_connect(upcb, addr, port);
 
 	/* Send a Reply to the Client */
-	errorUDP = udp_send(upcb, txBuf);
+	/* errorUDP =*/ udp_send(upcb, txBuf);
 
 	/* free the UDP connection, so we can accept new clients */
 	udp_disconnect(upcb);
@@ -101,13 +94,11 @@ void udp_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p,
 	/* Free the p buffer */
 	pbuf_free(p);
 
-//	HAL_NVIC_EnableIRQ(TIM3_IRQn);
-
 }
 
 void udpServer_init(void *rec_arg) {
 	// UDP Control Block structure
-	//struct udp_pcb *upcb;
+	struct udp_pcb *upcb;
 	err_t err;
 
 	/* 1. Create a new UDP control block  */
