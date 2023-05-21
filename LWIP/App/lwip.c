@@ -80,7 +80,8 @@ void udp_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p,
 	pbuf_take(txBuf, bufOut, lenOut);
 
 	/* Connect to the remote client */
-	/* errorUDP =*/ udp_connect(upcb, addr, port);
+	/* errorUDP =*/ // udp_connect(upcb, addr, port);
+	/* errorUDP =*/ udp_connect(upcb, addr, 65000);
 
 	/* Send a Reply to the Client */
 	/* errorUDP =*/ udp_send(upcb, txBuf);
@@ -109,7 +110,7 @@ void udpServer_init(void *rec_arg) {
 	IP_ADDR4(&myIPADDR, IP_ADDRESS[0], IP_ADDRESS[1], IP_ADDRESS[2],
 			IP_ADDRESS[3]);
 
-	err = udp_bind(upcb, &myIPADDR, 7);  // 7 is the server UDP port
+	err = udp_bind(upcb, &myIPADDR, 64000);  // 7 is the server UDP port
 
 	/* 3. Set a receive callback for the upcb */
 	if (err == ERR_OK) {

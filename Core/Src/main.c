@@ -70,6 +70,7 @@ extern struct waveGeneratorInfo {
 	float sampleFreq; /* Sampling DAC-ADC frequency */
 	float actualAmp;
 	uint16_t dataOut[INIT_PTOS];
+	float bugEsc; /* Scaler to try end the test*/
 };
 
 extern uint8_t indexDataOut; /* Index to waveGeneratorInfo.dataOut[] */
@@ -78,11 +79,8 @@ extern struct waveGeneratorInfo wgD[180]; /* This vector has all step data */
 
 extern uint8_t tstStep; /* Index to restore the step test data*/
 
-uint32_t dataIn;
-uint32_t dataOut;
+uint32_t dataIn; /* To store adc measures */
 
-extern char udpBufOut[20+(SAMPLES_TO_SEND*6)]; /* ¡Caution with this length, it depends in the number of samples to send */
-extern uint16_t udpLenOut;
 
 /* USER CODE END PV */
 
@@ -402,12 +400,11 @@ static void MX_GPIO_Init(void) {
 /* USER CODE BEGIN 4 */
 
 void setTestStart(bool start) {
-	//start ? HAL_TIM_Base_Start_IT(&htim3) : HAL_TIM_Base_Stop_IT(&htim3);
 	start ? HAL_TIM_Base_Start_IT(&htim2) : HAL_TIM_Base_Stop_IT(&htim2);
 
 }
 
-/* static*/void Reconfigure_TIM2(void) {
+void Reconfigure_TIM2(void) {
 
 	TIM_ClockConfigTypeDef sClockSourceConfig = { 0 };
 	TIM_MasterConfigTypeDef sMasterConfig = { 0 };
@@ -451,23 +448,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
 
-//		dataOut =
-//				(uint32_t) (DAC_CTE_CONV
-//						* (OFFSET_UP
-//								+ ((wgD[tstStep].actualAmp / 2.0)
-//										* (cos(
-//												2.0 * M_PI
-//														* ((float) wgD[tstStep].actualFreq)
-//														* (sIdx)
-//														/ wgD[tstStep].sampleFreq)
-//												+ 1.0))));
-
 		/* Reset index of dataOut to avoid push data out of memory*/
 		if(indexDataOut > wgD[tstStep].numPtos) indexDataOut = 0;
 
-		dataOut = wgD[tstStep].dataOut[indexDataOut++];
-
-		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dataOut);
+		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, wgD[tstStep].dataOut[indexDataOut++]);
 		HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
 
 		HAL_ADC_Start(&hadc1);
@@ -478,28 +462,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 		sIdx++;
 
-		if (1.0 < sIdx / wgD[tstStep].sampleFreq) {
-
-			uint8_t auxLen = 0;
+		/* It's mult by wgInfo.bugEsc because if it waits all cycle the global test can not end */
+		if (wgD[tstStep].bugEsc < sIdx / wgD[tstStep].sampleFreq) {
 
 			HAL_TIM_Base_Stop_IT(&htim2);
 			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
-
-//			/* Makes the string to send to PC */
-//			udpLenOut =
-//					flagEndTest ?
-//							sprintf(udpBufOut, "END %.3f ",
-//									wgD[tstStep].actualFreq) :
-//							sprintf(udpBufOut, "RUN %.3f ",
-//									wgD[tstStep].actualFreq);
-//
-//			uint16_t findex;
-//			/* I do not why I can send 200 data and not all buffer (256) */
-//			for (findex = 0; findex < 200; findex++) {
-//				auxLen = sprintf(udpBufOut + udpLenOut, "%.3f ",
-//						buffSamples[findex] > 0.0 ? buffSamples[findex] : 0.0);
-//				udpLenOut += auxLen;
-//			}
 
 		}
 

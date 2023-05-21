@@ -30,16 +30,15 @@ struct waveGeneratorInfo {
 	float sampleFreq; /* Sampling DAC-ADC frequency */
 	float actualAmp;
 	uint16_t dataOut[INIT_PTOS];
+	float bugEsc; /* Scaler to try end the test*/
 };
 
 uint8_t indexDataOut; /* Index to waveGeneratorInfo.dataOut[] */
 
-uint8_t tstStep;
+uint8_t tstStep; /* */
 
 struct waveGeneratorInfo wgD[180]; /* This vector has all step data */
 
-char udpBufOut[20 + (SAMPLES_TO_SEND * 6)]; /* ¡Caution with this length, it depends in the number of samples to send */
-uint16_t udpLenOut;
 
 /* Private function prototypes -----------------------------------------------*/
 static errorWaveGenerator WG_IDN(char *bufOut, uint16_t *lenOut);
@@ -137,7 +136,6 @@ static errorWaveGenerator WG_ABOR(char *bufOut, uint16_t *lenOut, void *cb_arg) 
 	HAL_DAC_SetValue(ptrHWp.ptrHdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 0);
 	HAL_DAC_Start(ptrHWp.ptrHdac, DAC_CHANNEL_1);
 	HAL_DAC_Stop(ptrHWp.ptrHdac, DAC_CHANNEL_1);
-//	HAL_ADC_Stop(ptrHWp.ptrHadc1);
 
 	*lenOut =
 			flagEndTest ?
@@ -160,7 +158,6 @@ static errorWaveGenerator WG_INIT(char *bufOut,
 
 	Reset_Own_Vars();
 
-	//*lenOut = sprintf(bufOut, "Test initialized");
 	*lenOut = 0;
 
 	setTestStart(true);
@@ -176,6 +173,7 @@ static errorWaveGenerator WG_INIT(char *bufOut,
  */
 static errorWaveGenerator WG_UPD(char *bufOut, uint16_t *lenOut) {
 
+	setTestStart(false);
 	*lenOut =
 			flagEndTest ?
 					sprintf(bufOut, "END %.3f ", wgD[tstStep].actualFreq) :
@@ -183,15 +181,12 @@ static errorWaveGenerator WG_UPD(char *bufOut, uint16_t *lenOut) {
 
 	uint8_t auxLen = 0;
 
-	/* I do not why I can send 200 data and not all buffer (256) */
-	for (uint16_t findex = 0; findex < 200; findex++) {
+	/* I do not why I can send 240 data and not all buffer (256) */
+	for (uint16_t findex = 0; findex < SAMPLES_TO_SEND; findex++) {
 		auxLen = sprintf(bufOut + *lenOut, "%.3f ",
 				buffSamples[findex] > 0.0 ? buffSamples[findex] : 0.0);
 		*lenOut += auxLen;
 	}
-//	*lenOut = udpLenOut;
-//	memcpy(bufOut,udpBufOut,udpLenOut);
-	WG.UpdateTestStep();
 
 	return NO_ERROR;
 } //WG_UPD
@@ -204,9 +199,9 @@ static errorWaveGenerator WG_UPD(char *bufOut, uint16_t *lenOut) {
  */
 static errorWaveGenerator WG_KEEP(char *bufOut, uint16_t *lenOut) {
 
+	WG.UpdateTestStep();
 	setTestStart(true);
 
-	//*lenOut = sprintf(bufOut, "Test in progress");
 	*lenOut = 0;
 
 	return NO_ERROR;
@@ -243,6 +238,10 @@ void WG_Process_Data(char *bufIn, uint16_t lenIn, char *bufOut,
 	else if (strcmp(bufIn + 4, "UPD") == 0) {
 		WG_UPD(bufOut, lenOut);
 	}
+	/* Retry Update info for the PC */
+	else if (strcmp(bufIn + 4, "RET") == 0) {
+		WG_UPD(bufOut, lenOut);
+	}
 	/* Keep the test  */
 	else if (strcmp(bufIn + 4, "KEEP") == 0) {
 		WG_KEEP(bufOut, lenOut);
@@ -254,6 +253,11 @@ void WG_Process_Data(char *bufIn, uint16_t lenIn, char *bufOut,
 
 } //WG_Process_Data
 
+/**
+ * @brief	Pre-calculates all variables in order to save time while the test is running
+ * @param 	none
+ * @retval	none
+ */
 void WG_Initialice(void) {
 
 	struct waveGeneratorInfo wgInfo;
@@ -349,6 +353,11 @@ void WG_Initialice(void) {
 						(int) (INIT_PTOS / wgInfo.numPtos) * wgInfo.numPtos :
 						wgInfo.numPtos;
 
+		/* I do not know why the uC can sampling over 23KHz */
+		wgInfo.bugEsc =
+				wgInfo.sampleFreq > MAX_SAMPLE_FREQ ?
+						MAX_SAMPLE_FREQ / wgInfo.sampleFreq : 1.0;
+
 		/* Store info */
 		wgD[numIterations] = wgInfo;
 
@@ -363,7 +372,7 @@ void WG_Initialice(void) {
 
 	}
 
-}
+} //WG_Initialice
 
 /**
  * @brief  Reset all in tests used variables.
@@ -373,7 +382,7 @@ void WG_Initialice(void) {
 static void Reset_Own_Vars(void) {
 
 	indexDataOut = 0;
-	tstStep = 55;
+	tstStep = 0;
 	flagFrecRetries = false;
 	cntFrecRetries = 0;
 	flagEndTest = false;
@@ -415,17 +424,11 @@ void WG_Update_Test_Step(void) {
 
 			Reconfigure_TIM2();
 
-			/* Calculate the new sample frequency pre-scaler */
-
 			/* Reset data stored and index */
 			memset(buffSamples, 0, sizeof(buffSamples));
 			mIdx.safeMem = 0;
 			sIdx = 0; /* The máx index achieved in 10 seconds is 10^7, the máx number of uint32 is ~4*10^9 */
 			indexDataOut = 0;
-
-//			if (tstStep == 59) {
-//				BREAKPOINT;
-//			}
 
 		}
 

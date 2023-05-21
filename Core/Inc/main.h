@@ -113,8 +113,8 @@ void setTestStart(bool start);
 /* USER CODE BEGIN Private defines */
 #define NOT_EXT_FILTER	1
 
-#define FW_VERSION 		0
-#define FW_SUBVERSION	9
+#define FW_VERSION 		1
+#define FW_SUBVERSION	0
 
 #define BREAKPOINT asm("NOP")
 
