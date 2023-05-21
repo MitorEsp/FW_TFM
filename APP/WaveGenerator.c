@@ -8,17 +8,12 @@
 #include "lwip.h"
 
 /* Private macros */
-#define SAMPLES_PERIOD	20 /* Samples measured per period */
 
 /* Private variables ---------------------------------------------------------*/
-uint32_t actualFreq; /* Actual frequency test */
-float actualAmp; /* Actual amplitude test */
+
 bool flagFrecRetries; /* Indicates if the measurement is out of valid margins */
 uint8_t cntFrecRetries; /* Retries counter if the measurements is out of valid margins*/
 bool flagEndTest; /* Indicates the end of the test */
-uint16_t ADCprescaler; /* Pre-scaler to measure 20 samples máx. per period */
-uint16_t ADCcount; /* Count to divide the ADC sampling frequency */
-float sampleFreq; /* Sampling DAC-ADC frequency */
 
 union {
 	uint8_t ii;
@@ -31,16 +26,19 @@ struct waveGeneratorInfo {
 	uint32_t ARR; /* Auto Reload Register for TIM2 */
 	uint32_t PSC; /* Pre-scaler for TIM2 */
 	float actualFreq; /* TIM2 frequency in function of ARR and PSC */
-	uint8_t numPtos; /* Number of points per cycle */
+	uint8_t numPtos; /* Number of points per cycle in initialization, and while testing the number of dataOuts stored*/
 	float sampleFreq; /* Sampling DAC-ADC frequency */
 	float actualAmp;
+	uint16_t dataOut[INIT_PTOS];
 };
+
+uint8_t indexDataOut; /* Index to waveGeneratorInfo.dataOut[] */
 
 uint8_t tstStep;
 
 struct waveGeneratorInfo wgD[180]; /* This vector has all step data */
 
-char udpBufOut[1200]; /* ¡Caution with this length, it depends in the number of samples to send */
+char udpBufOut[20 + (SAMPLES_TO_SEND * 6)]; /* ¡Caution with this length, it depends in the number of samples to send */
 uint16_t udpLenOut;
 
 /* Private function prototypes -----------------------------------------------*/
@@ -178,24 +176,21 @@ static errorWaveGenerator WG_INIT(char *bufOut,
  */
 static errorWaveGenerator WG_UPD(char *bufOut, uint16_t *lenOut) {
 
-//	*lenOut =
-//			flagEndTest ?
-//					sprintf(bufOut, "END %.3f ", wgD[tstStep].actualFreq) :
-//					sprintf(bufOut, "RUN %.3f ", wgD[tstStep].actualFreq);
-//
-//	uint8_t auxLen = 0;
-//
-//	/* I do not why I can send 200 data and not all buffer (256) */
-//	for (uint16_t findex = 0; findex < 200; findex++) {
-//		auxLen = sprintf(bufOut + *lenOut, "%.3f ",
-//				buffSamples[findex] > 0.0 ? buffSamples[findex] : 0.0);
-//		*lenOut += auxLen;
-//
-//	}
+	*lenOut =
+			flagEndTest ?
+					sprintf(bufOut, "END %.3f ", wgD[tstStep].actualFreq) :
+					sprintf(bufOut, "RUN %.3f ", wgD[tstStep].actualFreq);
 
-	*lenOut = udpLenOut;
-	memcpy(bufOut,udpBufOut,udpLenOut);
+	uint8_t auxLen = 0;
 
+	/* I do not why I can send 200 data and not all buffer (256) */
+	for (uint16_t findex = 0; findex < 200; findex++) {
+		auxLen = sprintf(bufOut + *lenOut, "%.3f ",
+				buffSamples[findex] > 0.0 ? buffSamples[findex] : 0.0);
+		*lenOut += auxLen;
+	}
+//	*lenOut = udpLenOut;
+//	memcpy(bufOut,udpBufOut,udpLenOut);
 	WG.UpdateTestStep();
 
 	return NO_ERROR;
@@ -269,7 +264,7 @@ void WG_Initialice(void) {
 
 	/* Initial data */
 	wgInfo.actualFreq = 30;
-	wgInfo.numPtos = 40;
+	wgInfo.numPtos = INIT_PTOS;
 	wgInfo.actualAmp = MAX_AMP;
 
 	while (keepCalculate) {
@@ -327,6 +322,33 @@ void WG_Initialice(void) {
 		}
 #endif
 
+		/* Pre-calculate points to DAC */
+		/* If more than 1 cycle fits in dataOut array, use it */
+		for (int repeatCycle = 0; repeatCycle < INIT_PTOS / wgInfo.numPtos;
+				repeatCycle++) {
+
+			for (int iPto = wgInfo.numPtos * repeatCycle;
+					iPto < wgInfo.numPtos * (repeatCycle + 1); iPto++) {
+				wgInfo.dataOut[iPto] =
+						(DAC_CTE_CONV
+								* (OFFSET_UP
+										+ ((wgInfo.actualAmp / 2.0)
+												* (cos(
+														2.0 * M_PI
+																* ((float) wgInfo.actualFreq)
+																* (iPto)
+																/ wgInfo.sampleFreq)
+														+ 1.0))));
+			}
+
+		}
+
+		/* Number of points pre-stored for each freq */
+		wgInfo.numPtos =
+				(int) (INIT_PTOS / wgInfo.numPtos) > 1 ?
+						(int) (INIT_PTOS / wgInfo.numPtos) * wgInfo.numPtos :
+						wgInfo.numPtos;
+
 		/* Store info */
 		wgD[numIterations] = wgInfo;
 
@@ -350,7 +372,8 @@ void WG_Initialice(void) {
  */
 static void Reset_Own_Vars(void) {
 
-	tstStep = 0;
+	indexDataOut = 0;
+	tstStep = 55;
 	flagFrecRetries = false;
 	cntFrecRetries = 0;
 	flagEndTest = false;
@@ -375,7 +398,7 @@ void WG_Update_Test_Step(void) {
 	if ((!flagFrecRetries) || (cntFrecRetries > 9)) {
 
 		/* if the previous frequency is just 10KHz the test was end */
-		if (actualFreq == 100000) {
+		if (wgD[tstStep].actualFreq == 100000) {
 
 			/* Notify the end of the test*/
 			flagEndTest = true;
@@ -398,87 +421,21 @@ void WG_Update_Test_Step(void) {
 			memset(buffSamples, 0, sizeof(buffSamples));
 			mIdx.safeMem = 0;
 			sIdx = 0; /* The máx index achieved in 10 seconds is 10^7, the máx number of uint32 is ~4*10^9 */
+			indexDataOut = 0;
+
+//			if (tstStep == 59) {
+//				BREAKPOINT;
+//			}
 
 		}
 
 	}
 } //WG_Update_Test_Step
 
-/**
- * @brief  Actual frequency step getter.
- * @param  None
- * @retval	actualFreq Actual frequency step test.
- */
-uint32_t WG_Get_Frequency(void) {
-	return actualFreq;
-}
-
-/**
- * @brief  Amplitude step getter.
- * @param  None
- * @retval	actualAmp Actual Amplitude step test.
- */
-float WG_Get_Amplitude(void) {
-	return actualAmp;
-}
-
-/**
- * @brief  Pre-scaler to ADC sampling getter.
- * @param  None
- * @retval	ADCprescaler Actual ADC pre-scaler step test.
- */
-uint16_t WG_Get_ADC_Prescaler(void) {
-	return ADCprescaler;
-}
-
-/**
- * @brief  Stores the input samples in a array to provides to PC.
- * @param  sample
- * @retval	None
- */
-void WG_Store_Sample(float sample) {
-	buffSamples[mIdx.ii++] = sample;
-}
-
-/**
- * @brief  Index of sample to generate in output (DAC) getter.
- * 		Increments one for the next call.
- * @param  None
- * @retval	sIdx Actual index of output sample.
- */
-uint32_t WG_Get_Index_of_Sample(void) {
-	return sIdx++;
-}
-
-/**
- * @brief  Actual count to pre-scaler ADC sampling getter.
- * @param  None
- * @retval	ADCcount Actual count to pre-scaler ADC sampling.
- */
-uint32_t WG_Get_ADC_Sample_Count(void) {
-	return ADCcount;
-}
-
-/**
- * @brief  Actual count to pre-scaler ADC sampling setter.
- * @param  ADCcount Actual count to pre-scaler ADC sampling.
- * @retval	None
- */
-void WG_Set_ADC_Sample_Count(uint32_t setADCcount) {
-	ADCcount = setADCcount;
-}
-
 /* Pointer provider struct to public functions. */
 struct WaveGenerator_T WG = { /* */
 .Initialice = WG_Initialice, /* */
 .ProcessData = WG_Process_Data, /* */
 .UpdateTestStep = WG_Update_Test_Step, /* */
-.getFreq = WG_Get_Frequency, /* */
-.getAmp = WG_Get_Amplitude, /* */
-.getADCPres = WG_Get_ADC_Prescaler, /**/
-.storeSample = WG_Store_Sample, /* */
-.getIndexofSample = WG_Get_Index_of_Sample, /* */
-.getADCSampleCount = WG_Get_ADC_Sample_Count, /* */
-.setADCSampleCount = WG_Set_ADC_Sample_Count, /* */
 
 };

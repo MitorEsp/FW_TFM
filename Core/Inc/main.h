@@ -116,6 +116,8 @@ void setTestStart(bool start);
 #define FW_VERSION 		0
 #define FW_SUBVERSION	9
 
+#define BREAKPOINT asm("NOP")
+
 typedef struct{
 	ADC_HandleTypeDef *ptrHadc1;
 	DAC_HandleTypeDef *ptrHdac;

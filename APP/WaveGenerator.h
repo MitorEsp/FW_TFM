@@ -22,6 +22,8 @@ extern "C" {
 #define MAX_SAMPLE_FREQ 50000.0
 #define MAX_AMP 3.0
 #define MAX_ARR 4294967295
+#define SAMPLES_TO_SEND 200
+#define INIT_PTOS 40
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -38,13 +40,7 @@ struct WaveGenerator_T {
 	void (*ProcessData)(char *bufIn, uint16_t lenIn, char *bufOut,
 			uint16_t *lenOut, void *cb_arg);
 	void (*UpdateTestStep)(void);
-	uint32_t (*getFreq)(void);
-	float (*getAmp)(void);
-	uint16_t (*getADCPres)(void);
-	void (*storeSample)(float sample);
-	uint32_t (*getIndexofSample) (void);
-	uint32_t(*getADCSampleCount)(void);
-	void (*setADCSampleCount)(uint32_t setADCcount);
+
 
 }extern WG;
 

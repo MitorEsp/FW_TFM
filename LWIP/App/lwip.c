@@ -68,7 +68,7 @@ void udp_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p,
 	struct pbuf *txBuf;
 	/* err_t errorUDP = ERR_OK; */
 
-	char bufOut[1200]; /* ¡Caution with this length, it depends in the number of samples to send */
+	char bufOut[20+(SAMPLES_TO_SEND*6)]; /* ¡Caution with this length, it depends in the number of samples to send */
 	uint16_t lenOut;
 
 	WG.ProcessData(p->payload, p->len, bufOut, &lenOut, arg);
