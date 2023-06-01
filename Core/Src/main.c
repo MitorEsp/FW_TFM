@@ -70,7 +70,7 @@ extern struct waveGeneratorInfo {
 	float sampleFreq; /* Sampling DAC-ADC frequency */
 	float actualAmp;
 	uint16_t dataOut[INIT_PTOS];
-	float bugEsc; /* Scaler to try end the test*/
+
 };
 
 extern uint8_t indexDataOut; /* Index to waveGeneratorInfo.dataOut[] */
@@ -462,8 +462,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 		sIdx++;
 
-		/* It's mult by wgInfo.bugEsc because if it waits all cycle the global test can not end */
-		if (wgD[tstStep].bugEsc < sIdx / wgD[tstStep].sampleFreq) {
+		/* When the index is greater than sample freq. one second has been passed */
+		if (1 < sIdx / wgD[tstStep].sampleFreq) {
 
 			HAL_TIM_Base_Stop_IT(&htim2);
 			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);

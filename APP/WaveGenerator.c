@@ -30,7 +30,7 @@ struct waveGeneratorInfo {
 	float sampleFreq; /* Sampling DAC-ADC frequency */
 	float actualAmp;
 	uint16_t dataOut[INIT_PTOS];
-	float bugEsc; /* Scaler to try end the test*/
+
 };
 
 uint8_t indexDataOut; /* Index to waveGeneratorInfo.dataOut[] */
@@ -353,10 +353,10 @@ void WG_Initialice(void) {
 						(int) (INIT_PTOS / wgInfo.numPtos) * wgInfo.numPtos :
 						wgInfo.numPtos;
 
-		/* I do not know why the uC can sampling over 23KHz */
-		wgInfo.bugEsc =
+		/* I do not know why the uC can sampling over 23KHz */ /* Because the dac and adc can not sample at this frequency*/
+		/* wgInfo.bugEsc =
 				wgInfo.sampleFreq > MAX_SAMPLE_FREQ ?
-						MAX_SAMPLE_FREQ / wgInfo.sampleFreq : 1.0;
+						MAX_SAMPLE_FREQ / wgInfo.sampleFreq : 1.0; */
 
 		/* Store info */
 		wgD[numIterations] = wgInfo;
@@ -407,7 +407,7 @@ void WG_Update_Test_Step(void) {
 	if ((!flagFrecRetries) || (cntFrecRetries > 9)) {
 
 		/* if the previous frequency is just 10KHz the test was end */
-		if (wgD[tstStep].actualFreq == 100000) {
+		if (/*wgD[tstStep].actualFreq == 100000*/  wgD[tstStep].sampleFreq > MAX_SAMPLE_FREQ) {
 
 			/* Notify the end of the test*/
 			flagEndTest = true;

@@ -110,7 +110,7 @@ void udpServer_init(void *rec_arg) {
 	IP_ADDR4(&myIPADDR, IP_ADDRESS[0], IP_ADDRESS[1], IP_ADDRESS[2],
 			IP_ADDRESS[3]);
 
-	err = udp_bind(upcb, &myIPADDR, 64000);  // 7 is the server UDP port
+	err = udp_bind(upcb, &myIPADDR, 64000);  // 64000 is the server UDP port
 
 	/* 3. Set a receive callback for the upcb */
 	if (err == ERR_OK) {
